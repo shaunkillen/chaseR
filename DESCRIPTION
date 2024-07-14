@@ -2,11 +2,7 @@ Package: chaseR
 Type: Package
 Title: chaseR
 Description: Package to analyse maximum metabolic rates (MMRchase) in fish and post-activity metabolic recovery, after the chase protocol. 
-Imports: 
-          zoo,
-          ggplot2,
-          gridExtra,
-          minpack.lm
+Imports: zoo, ggplot2, gridExtra, minpack.lm
 Version: 0.1.0
 Author: Shaun Killen
 Maintainer: Shaun Killen <shaun.killen@glasgow.ac.uk>
