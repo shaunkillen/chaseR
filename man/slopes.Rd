@@ -10,7 +10,7 @@ Also returned are the start times for each slope and r-sqaured values. Blank slo
 and subtracted from all rolling window slopes. Data for up to four animals can be processed at once.
 }
 \usage{
-slopes(dataset, exclude_time = x, window_duration = x)
+slopes(data, exclude_time = x, window_duration = x)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
