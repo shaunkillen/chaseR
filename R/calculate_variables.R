@@ -80,7 +80,7 @@ calculate_variables <- function(data, tubing_diameters, tubing_lengths, V_chambe
         labs(title = paste("MO2 vs Time for", fish_col),
              x = "Time (s)",
              y = "MO2 (mg O2/h)") +
-        theme_minimal()
+        theme_classic()
       plots_MMR[[fish_col]] <- p_MMR
 
       # Store summary results
