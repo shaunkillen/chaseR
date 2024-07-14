@@ -9,7 +9,7 @@ A function to calculate rolling slopes for numerous rolling window sizes. Return
 versus size of rolling window, colour-scaled to the mean r-squared value for each window size. Also displays the minimum rolling window size to achieve threshold mean r-squared values. Data for up to four animals can be analysed at once.
 }
 \usage{
-window_effect(dataset, exclude_time = x, window_durations = seq(lower limit, upper limit, increment size), r_squared_threshold = x)
+window_effect(data, exclude_time = x, window_durations = seq(lower limit, upper limit, increment size), r_squared_threshold = x)
 
 }
 %- maybe also 'usage' for other objects documented here.
