@@ -1,4 +1,4 @@
-slopes <- function(data, exclude_time = 0, window_duration = 60) {
+plot_slopes <- function(data, exclude_time = 0, window_duration = 60) {
   # Ensure the time column is numeric
   if (!"time" %in% names(data)) {
     stop("The data frame must contain a 'time' column.")
@@ -89,9 +89,57 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
       "R-Squared for Minimum Slope" = min_slope_r_squared,
       "Mean R-Squared for all windows" = mean_r_squared
     )
+
+    slope_colors = c("#4E79A7", "#919C4C", "#FD8F24", "#C03728")
+
+    # Collect all r-squared values for global scaling
+    all_r_squared <- c(all_r_squared, roll_results$r_squared)
+
+    # Plot slopes and r-squared values against start times
+    plot_data <- data.frame(
+      Start_Times = roll_results$start_times,
+      Slopes = adjusted_slopes,
+      R_Squared = roll_results$r_squared
+    )
+
+    p_slope <- ggplot(plot_data, aes(x = Start_Times, y = Slopes)) +
+      geom_line(color = slope_colors[i]) +
+      labs(title = paste(fish_col, "Slopes vs Time"),
+           x = "Time (s)",
+           y = "Adjusted Slope (mg O2/L/s") +
+      theme_minimal()
+
+    slope_plot_list[[fish_col]] <- p_slope
+    r2_plot_list[[fish_col]] <- plot_data
   }
+
+  # Determine global limits for r-squared values
+  r_squared_limits <- range(all_r_squared, na.rm = TRUE)
+
+  # Plot r-squared values with global color scaling
+  for (fish_col in fish_columns) {
+    if (!is.null(r2_plot_list[[fish_col]])) {
+      plot_data <- r2_plot_list[[fish_col]]
+      p_r2 <- ggplot(plot_data, aes(x = Start_Times, y = R_Squared)) +
+        geom_line(aes(color = R_Squared)) +
+        scale_color_gradient(low = "red", high = "green", limits = r_squared_limits) +
+        labs(title = paste(fish_col, "R-Squared vs Time"),
+             x = "Time (s)",
+             y = "R-Squared") +
+        theme_minimal()
+      r2_plot_list[[fish_col]] <- p_r2
+    }
+  }
+
+  # Arrange slope plots in a grid and display
+  slope_plots <- do.call(grid.arrange, c(slope_plot_list, ncol = 2))
+  print(slope_plots)
+
+  # Arrange r2 plots in a grid and display
+  r2_plots <- do.call(grid.arrange, c(r2_plot_list, ncol = 2))
+  print(r2_plots)
+
   return(list(
     "Results" = results_list
   ))
 }
-
