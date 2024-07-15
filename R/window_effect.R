@@ -1,4 +1,4 @@
-window_effect <- function(data, exclude_time = 0, window_durations = seq(30, 600, 30), r_squared_threshold = 0.95) {
+window_effect <- function(data, exclude_time = 0, window_durations = seq(100, 600, 100), r_squared_threshold = 0.90) {
   results <- list()
   fish_columns <- c("MO2_fish1", "MO2_fish2", "MO2_fish3", "MO2_fish4")
   min_window_durations <- list()
