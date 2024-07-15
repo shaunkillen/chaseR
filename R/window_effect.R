@@ -10,7 +10,7 @@ window_effect <- function(data, exclude_time = 0, window_durations = seq(100, 60
 
   for (window_duration in window_durations) {
     cat("Analyzing window duration:", window_duration, "seconds\n")
-    slopes_results <- slopes(data, exclude_time, window_duration)
+    slopes_results <- slopes(data, exclude_time, window_duration)$Results
 
     for (fish_col in fish_columns) {
       if (is.null(slopes_results[[fish_col]])) next
