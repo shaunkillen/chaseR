@@ -72,12 +72,12 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
       "Adjusted Slopes" = adjusted_slopes,
       "Starting Times" = roll_results$start_times,
       "Minimum Adjusted Slope" = min_adjusted_slope,
-      "R-Squared for Minimum Slope" = min_slope_r_squared,
+      "Percentage of Fish Slope (%)" = percentage_of_fish,
       "Start Time for Minimum Slope" = min_slope_start_time,
-      "Mean R-Squared for all windows" = mean_r_squared,
-      "Percentage of Fish Slope (%)" = percentage_of_fish
+      "R-Squared for Minimum Slope" = min_slope_r_squared,
+      "Mean R-Squared for all windows" = mean_r_squared
     )
   }
 
-  return(results_list)
+  return(invisible(results_list))
 }
