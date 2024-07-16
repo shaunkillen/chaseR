@@ -1,4 +1,4 @@
-window_effect <- function(data, exclude_time = 0, window_durations = seq(100, 600, 100), r_squared_threshold = 0.90) {
+window_effect <- function(data, exclude_time = 0, window_durations = seq(30, 600, 30), r_squared_threshold = 0.95) {
   results <- list()
   fish_columns <- c("MO2_fish1", "MO2_fish2", "MO2_fish3", "MO2_fish4")
   min_window_durations <- list()
@@ -10,7 +10,7 @@ window_effect <- function(data, exclude_time = 0, window_durations = seq(100, 60
 
   for (window_duration in window_durations) {
     cat("Analyzing window duration:", window_duration, "seconds\n")
-    slopes_results <- slopes(data, exclude_time, window_duration)$Results
+    slopes_results <- slopes(data, exclude_time, window_duration)
 
     for (fish_col in fish_columns) {
       if (is.null(slopes_results[[fish_col]])) next

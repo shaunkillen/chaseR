@@ -1,19 +1,9 @@
 slopes <- function(data, exclude_time = 0, window_duration = 60) {
   # Ensure the time column is numeric
-  if (!"time" %in% names(data)) {
-    stop("The data frame must contain a 'time' column.")
-  }
   data$time <- as.numeric(data$time)
 
   # Filter the data to exclude the initial time period
   data <- data[data$time >= exclude_time, ]
-
-  # Check if the required columns are present
-  required_columns <- c("MO2_blank", "MO2_fish1", "MO2_fish2", "MO2_fish3", "MO2_fish4")
-  missing_columns <- setdiff(required_columns, names(data))
-  if (length(missing_columns) > 0) {
-    stop("The data frame is missing the following required columns: ", paste(missing_columns, collapse = ", "))
-  }
 
   # Calculate the slope of MO2_blank vs time
   blank_lm <- lm(MO2_blank ~ time, data = data)
@@ -21,10 +11,11 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
 
   # Function to calculate slope, r-squared, and starting time in a rolling window
   roll_lm <- function(y, x, window_size) {
+    slopes <- c()
+    r_squared <- c()
+    start_times <- c()
+
     n <- length(y)
-    slopes <- numeric(n - window_size + 1)
-    r_squared <- numeric(n - window_size + 1)
-    start_times <- numeric(n - window_size + 1)
 
     if (n < window_size) {
       stop("Window size is larger than the data length.")
@@ -39,9 +30,9 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
       }
 
       lm_fit <- lm(y_window ~ x_window)
-      slopes[i] <- coef(lm_fit)[2]
-      r_squared[i] <- summary(lm_fit)$r.squared
-      start_times[i] <- x[i]  # Store the starting time of the window
+      slopes <- c(slopes, coef(lm_fit)[2])
+      r_squared <- c(r_squared, summary(lm_fit)$r.squared)
+      start_times <- c(start_times, x[i])  # Store the starting time of the window
     }
 
     return(data.frame(slopes, r_squared, start_times))
@@ -53,14 +44,10 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
 
   # Initialize a list to store results
   results_list <- list()
-  slope_plot_list <- list()
-  r2_plot_list <- list()
-  all_r_squared <- c()  # Collect all r-squared values to determine global limits
 
   # Loop over each MO2_fish column and calculate rolling slopes, r-squared, and start times
   fish_columns <- c("MO2_fish1", "MO2_fish2", "MO2_fish3", "MO2_fish4")
-  for (i in seq_along(fish_columns)) {
-    fish_col <- fish_columns[i]
+  for (fish_col in fish_columns) {
     if (!fish_col %in% names(data)) {
       warning(paste(fish_col, "is not in the data"))
       next
@@ -73,7 +60,7 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
     adjusted_slopes <- roll_results$slopes - slope_blank
 
     # Find the minimum adjusted slope
-    min_adjusted_slope <- min(as.numeric(adjusted_slopes), na.rm = TRUE)
+    min_adjusted_slope <- min(adjusted_slopes)
     min_slope_idx <- which.min(adjusted_slopes)
     min_slope_r_squared <- roll_results$r_squared[min_slope_idx]
     min_slope_start_time <- roll_results$start_times[min_slope_idx]
@@ -90,8 +77,6 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
       "Mean R-Squared for all windows" = mean_r_squared
     )
   }
-  return(list(
-    "Results" = results_list
-  ))
-}
 
+  return(results_list)
+}
