@@ -1,0 +1,151 @@
+---
+title: "Using chaseR"
+output: rmarkdown::html_vignette
+fig_width: 9 
+fig_height: 7 
+description: >
+  Example workflow for chaseR, to estimate the maximum metabolic rate of fish, using collected using intermittant-flow respirometry and the 
+  chase method. Functions will also perform numerous data quality checks, diagnostics, and return many other variables of interest.
+vignette: >
+  %\VignetteIndexEntry{Using chaseR}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, echo = FALSE, message = FALSE}
+knitr::opts_chunk$set(collapse = T, comment = "#>")
+options(tibble.print_min = 4L, tibble.print_max = 4L)
+library(chaseR)
+```
+
+For fishes, one way of estimating maximum metabolic rates (MMR) is to measure rates of oxygen uptake immediately following exhaustive exercise. This method is often referred to as a "chase" protocol, because the animals are often made to swim with gentle hand movements or some other form of mechanical stimulation. After exhaustion, they are transferred to a respirometry chamber and the decline in water oxygen content is then measured over time. The slope of this decline can be used to estimate the animal's oxygen uptake as a proxy for aerobic metabolism.
+
+Because the animal will be recovering throughout this period, researchers determine the period after exercise with the steepest decline in water oxygen content, then to use this slope for calculating MMR. Shorter time frames tend to yield steeper slopes, because animals recover over time and so longer durations can be non-linear or show increasingly shallow slopes. However, shorter durations can also introduce more noise and so be associated with poorer model fits and lower r-squared values. 
+
+This package, chaseR, will calculate all slopes throughout a dataset of water oxygen content through time, using a rolling regression of a duration specified by the user. The user can also quickly trial many different window size to see which rolling window duration offers the best compromise between a steep slope and a good model fit. Finally, the maximum metabolic rate after exhaustion is calculated, as well as a range of other variables of interest including the rate of recovery after exercise and the integrated excess post-exercise oxygen consumption (EPOC). 
+
+This document introduces you to chaseR's functions, and shows you a typical workflow to return several plots and values of interest, including an estimate of MMR. 
+
+## Data
+
+To explore a basic workflow we'll use an example dataset that contains six columns: 
+
+(1) time (in seconds); 
+(2) water oxygen concentration for an empty (blank) respirometry chamber (MO2_blank; in mg O2/L); then 
+(3-6) up to four columns that contain data of water oxygen content for chambers that contained fish (MO2_fish1, MO2_fish2, MO2_fish3, and MO2_fish4; in mg O2/L). These four columns correspond to data that would be collected on a four-channel oxygen meter (e.g. PyroScience Firesting) for fish in four separate respirometry chambers . 
+
+It is imperative that the data you input into chaseR be in this format!
+
+```{r}
+data <- read.csv(system.file("extdata/test_data.csv", package="chaseR"))
+
+# Display the first few rows of the data
+head(data)
+```
+
+In preparing this data file, first populate the "time" column by starting with 0, then increasing each row by intervals representing how frequently the water oxygen content was measured (e.g. every two seconds). 
+
+For the fish data, load your oxygen meter output file into Excel, then copy and paste the data for each fish, starting from when they were first placed in their respective respirometers. Begin copying the data from the row where they first entered the respirometer. If you don't have this time noted down somewhere, you can also plot the data in Excel and visually examine when the O2 content started to decrease. Hover your cursor over this point, and you will be shown a time for that data point. This will likely be close to the entry time. Once you have selected the appropriate data for a given fish, paste it into your separate file with the appropriate headings (e.g. MO2_fish1, etc.), aligning the first row with time=0 in the "time" column. 
+
+You will also need to do this for the oxygen concentration data for an empty chamber, whether this was run in parallel, or before or after your measurements for MMR. Paste this data into the MO2_blank column, again aligning the first row (when the blank started) with time = 0. 
+
+## Analysing Window Sizes
+
+A good place to start the analysis is to estimate what rolling window duration is most appropriate for calculating your slopes. For this we can use the window_effect function. 
+
+As mentioned above, smaller rolling windows tend to yield steeper (more negative) slopes, but also have lower r-squared values due to a decreased signal-to-noise ratio. The function window_effect allows you to specify a range of window durations to test, then see a plot of minimum slope (the steepest negative slope in the dataset) vs window duration. Points are also colour-scaled by r-squared value. 
+
+Finally, the function will return the minimum window duration needed to give a mean r-squared (across all slopes) above a specific threshold that is specified by the user (e.g. r2 = 0.95).
+
+This function contains several arguments:
+
+data                This is the dataframe to be used.
+exclude_time        This is any time (in seconds) you want excluded from the beginning of the data. For example, it is common to exclude the                     first 30 seconds after transferring the fish to the respirometer, to ensure that mixing has occurred and that any steep                      slopes aren't artefacts.
+window_durations    This specifies the window durations you want to test (in seconds). The first value is the first duration to be tested,                       the second value is the last duration to be tested, and the third value is the increments that will be tested in between.                     In the example below, window durations from 30 to 600 seconds will be tested at every 30 second interval. 
+r_squared_threshold This is the minimum value for r^2 that you want to consider for usable slope estimates.
+
+```{r fig1, fig.height = 5, fig.width = 7}
+window_effect(data, exclude_time = 30, window_durations = seq(30, 600, 30), r_squared_threshold = 0.90)
+```
+
+The plots show us bthe general trends that we were expecting - that the minimum estimated slope increases with window size and that model r-squared values are higher. In addition to these plots, we also get a text output showing the minimum window size for each fish that is required to achieve the threshold r-squared value that we specified. As you can see, there is some variation among fish for this value. 
+
+For calculating our slopes (see the next step in the workflow), we may consider using different window sizes for each individual fish, or we could use a single window size for all fish that ensures our minimal r-squared threshold is being met. It is probably easiest to select a common window size. This will make our analyses more straightforward an will also avoid any biases associated with using different window sizes for different individuals. However, if there are any individuals that require unusually large window sizes relative to the others, it may be worth examining the data for these fish and considered whether a different window size should be used, or indeed if their data can be used at all if their mean r-squared values are too low. In the example above, for example, a window duration of 150 seconds would suffice for individuals 1-3, but fish 4 may need to be examined more carefully. 
+
+Overall, we may wish to process all fish in the dataset through this window size analysis to determine the optimal window size to apply to the entire dataset, before calculating our slopes. 
+
+## Calculating Slopes
+
+Now we can calculate our slopes using our rolling window. The "slopes" will do this for us, after adjusting for the slope of background microbial respiration, as well as return some other useful measures. This function has the following arguments:
+
+data                This is the dataframe to be used.
+exclude_time        This is any time (in seconds) you want excluded from the beginning of the data. As noted above, it is common to exclude                      the first 30 seconds after transferring the fish to the respirometer, to ensure that mixing has occurred and that any steep               slopes aren't artefacts.
+window_duration     The rolling window duration that will be used to calculate your slopes (in seconds), ideally determined using the                            window_effect function.
+
+```{r}
+slopes(data, exclude_time = 30, window_duration = 150)
+```
+
+Executing this function will return the following data for all fish in the file (up to a max of four individuals):
+
+Minimum Adjusted Slope (mg O2/L/s): this is the steepest decline in water oxygen content measured using the rolling window throughout the dataset, after adjusting for the background change in oxygen content.
+
+Blank Percentage of Fish Slope (%): The magnitude of the blank slope, expressed as a percentage of the minimum adjusted slope.
+
+Start Time for Minimum Slope (s): The time at which the minimum slope started.
+
+R-Squared for Minimum Slope: the R-squared value of the minimum slope.
+
+Mean R-Squared for all windows: mean r-squared for all slope in the dataset.
+
+## Plotting the Slopes
+
+The function "plot_slopes" returns plots of all slopes vs time, and the r-squared values for each slope vs time (for all fish separately). These measures can provide additional insight into the data for our four fish. For example, we previously suspected that fish 4 had data of insufficient quality. However, the plot of r-squared vs time for this fish shows us that, around the time at which the minimum slope occurred for this individual, slope r-squared values were high. Indeed, the slope for the minimum slope was 0.96 and is therefore of sufficient quality.
+
+"plot_slopes" contains the same arguments as the function "slopes".
+
+```{r fig2, fig.height = 5, fig.width = 7}
+plot_slopes(data, exclude_time = 30, window_duration = 150)
+```
+
+## Calculating MMR and Other Variables
+
+After calculating all of our slopes with the "slopes" function, we can calculate our main variables of interest using the "calculate_variables" function. 
+
+Before running "calculate_variables", you will need to run the following script to supply to values required for the calculations:
+
+```{r}
+# Example input values for each fish column, ordered MO2_fish1, MO2_fish2, MO2_fish3, MO2_fish4
+tubing_diameters <- c(0.03, 0.03, 0.03, 0.03)  # diameters of the tubing in the mixing circuits, in cm
+tubing_lengths <- c(50, 50, 50, 50)  # lengths of the tubing in the mixing circuit, in cm
+V_chambers <- c(50, 50, 50, 50)  # volume of the respirometry chambers, in mL
+fish_masses <- c(1.429, 0.924, 0.879, 1.324)  # wet masses of the fish, in grams
+smr_values <- c(0.056, 0.095, 0.124, 0.041)  # SMR values for each fish, mg O2/h
+```
+
+Values for the tubing diameters and lengths are used by the function to calculate the volume of the tubing, using the formula for the volume of a cylinder. This is then added to the volume of the respirometry chambers. The mass of the fish is then subtracted from the combined volume of the tubing plus the chamber, assuming that 1 gram of fish equals about 1 mL volume, to adjust the total volume of the system for the volume taken up by the fish.
+
+The slopes measured by the "slopes" function are then multiplied by the resulting system volume and 3600, to give rates of oxygen uptake for each slope (in mg O2/h).
+
+As an optional step, you can add the standard metabolic rate values for each fish. This will allow the function to calculate the integrated excess-post exercise oxygen consumption throughout the initial recovery period, as a means of estimating EPOC (in mg O2). This value is calculated as the area under the curve of oxygen uptake versus time, using the trapezoid rule, with the entered SMR values acting as the "floor" for these calculations. 
+
+The "calculate_variables" also includes the same data, exclude_time, and window_duration arguments as the "slopes" function.
+
+```{r fig3, fig.height = 5, fig.width = 7}
+calculate_variables(data, tubing_diameters, tubing_lengths, V_chambers, fish_masses, exclude_time = 30, window_duration = 150, smr_values)
+```
+
+For each fish, this function returns the following data:
+
+Maximum Metabolic Rate (mg O2/h): calculated from the steepest (minimum) slope identified in the dataset.
+R-Squared for MMR: The r-squared value of the slope used to calculate MMR.
+Time for MMR (s): The time at which MMR occurred.
+
+The function also applies an exponential decay model to estimate the following parameters:
+
+Exponential Rate of Recovery (1/s): The rate of decline in metabolic rate over time, as the fish recovers post-exercise.
+Asymptote (mg O2/h): The asymptote of the model. Theoretically this may approximate SMR or routine metabolic rate (RMR), but may be difficult to estimate accurately over relaitvely short timescales.
+
+If SMR values were supplied, the values for EPOC over the time frame in the data are also returned.
+
+Finally, plots of MO2 vs time are also shown for each fish, with MMR and the exponential decay model overlaid. Plots showing the areas under the curve, that were used to estimate EPOC are also displayed, with SMR shown as floor of these areas (the black dashed lines).
