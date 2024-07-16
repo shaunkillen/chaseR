@@ -1,4 +1,4 @@
-calculate_variables <- function(data, tubing_diameters, tubing_lengths, V_chambers, fish_masses, exclude_time = 0, window_duration = 60, smr_values) {
+calculate_variables <- function(data, tubing_diameters, tubing_lengths, V_chambers, fish_masses, exclude_time = 30, window_duration = 150, smr_values) {
   # Calculate slopes and MMR values
   slopes_results <- slopes(data, exclude_time, window_duration)
 
