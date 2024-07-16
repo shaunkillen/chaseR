@@ -79,5 +79,5 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
     )
   }
 
-  return(invisible(results_list))
+  return(results_list)
 }
