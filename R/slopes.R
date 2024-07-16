@@ -53,7 +53,6 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
       next
     }
 
-    cat("Processing", fish_col, "...\n")
     roll_results <- roll_lm(data[[fish_col]], data$time, window_size)
 
     # Adjust slopes by subtracting the slope of MO2_blank
@@ -66,14 +65,12 @@ slopes <- function(data, exclude_time = 0, window_duration = 60) {
     min_slope_start_time <- roll_results$start_times[min_slope_idx]
     mean_r_squared <- mean(roll_results$r_squared, na.rm = TRUE)
 
-    # Calculate the percentage of the fish slope that the blank slope represents
-    percentage_of_fish <- as.numeric(slope_blank / min_adjusted_slope) * 100
-
     results_list[[fish_col]] <- list(
+      "Adjusted Slopes" = adjusted_slopes,
+      "Starting Times" = roll_results$start_times,
       "Minimum Adjusted Slope" = min_adjusted_slope,
-      "Blank Percentage of Fish Slope (%)" = percentage_of_fish,
-      "Start Time for Minimum Slope" = min_slope_start_time,
       "R-Squared for Minimum Slope" = min_slope_r_squared,
+      "Start Time for Minimum Slope" = min_slope_start_time,
       "Mean R-Squared for all windows" = mean_r_squared
     )
   }
