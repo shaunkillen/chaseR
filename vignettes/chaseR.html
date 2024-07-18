@@ -429,20 +429,20 @@ minimum slope (the steepest negative slope in the dataset) vs window
 duration. Points are also colour-scaled by r-squared value.</p>
 <p>Finally, the function will return the minimum window duration needed
 to give a mean r-squared (across all slopes) above a specific threshold
-that is specified by the user (e.g. r2 = 0.95).</p>
+that is specified by the user (e.g. r^2 = 0.95).</p>
 <p>This function contains several arguments:</p>
-<p>data This is the dataframe to be used. exclude_time This is any time
-(in seconds) you want excluded from the beginning of the data. For
+<p>data: this is the dataframe to be used. exclude_time: This is any
+time (in seconds) you want excluded from the beginning of the data. For
 example, it is common to exclude the first 30 seconds after transferring
 the fish to the respirometer, to ensure that mixing has occurred and
-that any steep slopes aren’t artefacts. window_durations This specifies
+that any steep slopes aren’t artefacts. window_durations: This specifies
 the window durations you want to test (in seconds). The first value is
 the first duration to be tested, the second value is the last duration
 to be tested, and the third value is the increments that will be tested
-in between. In the example below, window durations from 30 to 600
-seconds will be tested at every 30 second interval. r_squared_threshold
-This is the minimum value for r^2 that you want to consider for usable
-slope estimates.</p>
+in between.In the example below, window durations from 30 to 600 seconds
+will be tested at every 30 second interval. r_squared_threshold: This is
+the minimum value for r^2 that you want to consider for usable slope
+estimates.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">window_effect</span>(data, <span class="at">exclude_time =</span> <span class="dv">30</span>, <span class="at">window_durations =</span> <span class="fu">seq</span>(<span class="dv">30</span>, <span class="dv">600</span>, <span class="dv">30</span>), <span class="at">r_squared_threshold =</span> <span class="fl">0.90</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="co">#&gt; Analyzing window duration: 30 seconds</span></span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="co">#&gt; Analyzing window duration: 60 seconds</span></span>
@@ -478,7 +478,7 @@ slope estimates.</p>
 #&gt; 
 #&gt; $MO2_fish4
 #&gt; [1] 420</code></pre>
-<p>The plots show us bthe general trends that we were expecting - that
+<p>The plots show us the general trends that we were expecting - that
 the minimum estimated slope increases with window size and that model
 r-squared values are higher. In addition to these plots, we also get a
 text output showing the minimum window size for each fish that is
@@ -504,16 +504,16 @@ the entire dataset, before calculating our slopes.</p>
 <div id="calculating-slopes" class="section level2">
 <h2>Calculating Slopes</h2>
 <p>Now we can calculate our slopes using our rolling window. The
-“slopes” will do this for us, after adjusting for the slope of
+“slopes” function will do this for us, after adjusting for the slope of
 background microbial respiration, as well as return some other useful
 measures. This function has the following arguments:</p>
-<p>data This is the dataframe to be used. exclude_time This is any time
-(in seconds) you want excluded from the beginning of the data. As noted
-above, it is common to exclude the first 30 seconds after transferring
-the fish to the respirometer, to ensure that mixing has occurred and
-that any steep slopes aren’t artefacts. window_duration The rolling
-window duration that will be used to calculate your slopes (in seconds),
-ideally determined using the window_effect function.</p>
+<p>data: this is the dataframe to be used. exclude_time: this is any
+time (in seconds) you want excluded from the beginning of the data. As
+noted above, it is common to exclude the first 30 seconds after
+transferring the fish to the respirometer, to ensure that mixing has
+occurred and that any steep slopes aren’t artefacts. window_duration:
+The rolling window duration that will be used to calculate your slopes
+(in seconds), ideally determined using the window_effect function.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="fu">slopes</span>(data, <span class="at">exclude_time =</span> <span class="dv">30</span>, <span class="at">window_duration =</span> <span class="dv">150</span>)</span>
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a><span class="co">#&gt; $MO2_fish1</span></span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="co">#&gt; $MO2_fish1$`Adjusted Slopes`</span></span>
@@ -1557,7 +1557,8 @@ dataset.</p>
 <p>The function “plot_slopes” returns plots of all slopes vs time, and
 the r-squared values for each slope vs time (for all fish separately).
 These measures can provide additional insight into the data for our four
-fish. For example, we previously suspected that fish 4 had data of
+fish.</p>
+<p>For example, we previously suspected that fish 4 had data of
 insufficient quality. However, the plot of r-squared vs time for this
 fish shows us that, around the time at which the minimum slope occurred
 for this individual, slope r-squared values were high. Indeed, the slope
@@ -1602,8 +1603,8 @@ volume of the tubing plus the chamber, assuming that 1 gram of fish
 equals about 1 mL volume, to adjust the total volume of the system for
 the volume taken up by the fish.</p>
 <p>The slopes measured by the “slopes” function are then multiplied by
-the resulting system volume and 3600, to give rates of oxygen uptake for
-each slope (in mg O2/h).</p>
+the resulting system volume and 3600 s/h, to give rates of oxygen uptake
+for each slope (in mg O2/h).</p>
 <p>As an optional step, you can add the standard metabolic rate values
 for each fish. This will allow the function to calculate the integrated
 excess-post exercise oxygen consumption throughout the initial recovery
